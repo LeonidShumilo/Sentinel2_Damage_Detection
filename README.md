@@ -1,42 +1,177 @@
-## Agricultural Fields Damage Detection in Ukraine Using Sentinel-2 Data and Deep Learning
+# Agricultural Field Damage Detection in Ukraine Using Sentinel-2 Data and Deep Learning
 
-Armed conflicts profoundly disrupt land systems and human well-being, leading to loss of life, destruction of infrastructure, and severe environmental degradation. Satellite remote sensing has become indispensable for assessing these impacts, providing consistent and repeatable observations that reveal conflict-driven cropland abandonment, deforestation, burning, and population displacement across global hotspots. However, mapping fine-scale conflict damage—particularly artillery impacts on agricultural fields—remains challenging due to the limitations of both very-high-resolution (VHR) data and medium-resolution open satellite platforms.
-Russia’s ongoing war of aggression against Ukraine has caused extensive landscape damage, including cratered fields and widespread proliferation of unexploded ordnance (UXO). Identifying artillery-damaged agricultural fields is critical for post-conflict recovery, de-mining prioritization, and estimating war-related losses. While VHR imagery enables detailed crater mapping (e.g., Duncan et al., 2023 [1]), operational monitoring at near-real time and across large regions is prohibitively expensive, and data availability is often constrained. In contrast, platforms like Sentinel-2 and Landsat offer high revisit cycles and open access but suffer from lower spatial resolution, cloud-mask uncertainties, and atmospheric or registration artifacts that complicate reliable damage detection.
+Armed conflicts profoundly disrupt land systems and human well-being, causing loss of life, destruction of infrastructure, and severe environmental degradation. Satellite remote sensing has become an essential tool for assessing these impacts by providing consistent, repeatable observations of conflict-driven cropland abandonment, deforestation, burning, and population displacement across affected regions.
 
-### 🔍 Overview
+However, mapping fine-scale conflict damage—particularly artillery-related damage to agricultural fields—remains challenging. Very-high-resolution (VHR) imagery can capture detailed surface disturbances, but large-scale and near-real-time monitoring is often prohibitively expensive and constrained by data availability. Open-access medium-resolution platforms such as Sentinel-2 and Landsat provide much better temporal coverage and scalability, but their lower spatial resolution, cloud contamination, and co-registration uncertainties complicate reliable damage detection.
 
-We developed a deep learning workflow to classify field-level damage from paired Sentinel-2 images. We used 10 m multispectral data (RGB, NIR, SWIR; <30% cloud cover) from conflict-affected regions of Ukraine and delineated agricultural fields using the Delineate Anything model (Lavreniuk et al., 2025). Training data were derived from 8 manually annotated 10×10 km areas where field polygons were labeled as “damaged” only if damage occurred between image dates. To mitigate class imbalance and increase damaged-field diversity, we augmented the dataset by pairing each damage observation with up to five pre-damage images. For damage detection workflow we tested 6 deep learning models: 3 state-of-the-art convolutional classifier architectures (CNN, ConvLSTM, and ConvLSTM0 and 3 transformer architectures (ConvMixer, Window Transformer, and Dual Swin Transformer).
+Russia’s ongoing war against Ukraine has caused widespread landscape damage, including cratered agricultural fields and contamination by unexploded ordnance (UXO). Identifying damaged fields is important for post-conflict recovery, demining prioritization, and estimation of war-related agricultural losses.
 
-### Architectures
-#### : CNN
-The CNN model served as the simplest baseline. It treated the full ten-band stack as a single multi-channel image and extracted spatial features through three successive convolutional blocks, each composed of 2D convolution, batch normalization, GELU activation, and max pooling. Pooling progressively reduced the spatial resolution while increasing the receptive field. The final feature map was then aggregated by adaptive average pooling and passed to the MLP classifier.
-This architecture does not include explicit temporal modeling or spatial attention. Instead, pre- and post-event information is processed jointly, and the network must infer change directly from the stacked spectral representation. Its main advantage is computational simplicity and efficient inference, which makes it a useful lower-bound baseline. However, its ability to detect subtle damage-related changes may be limited because temporal differences are not modeled explicitly.
-**CNN architecture** 
-   ![CNN](https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/CNN.png)
-#### : ConvLSTM
-To introduce explicit temporal structure, the ConvLSTM model partitioned the ten-band input into two sequential five-band frames representing the pre-event and post-event observations. These two timesteps were processed by a convolutional long short-term memory (ConvLSTM) cell, which maintained spatially distributed hidden and cell states throughout the sequence. The hidden state from the final timestep was then refined by a two-layer convolutional block before global pooling and classification.
-The main advantage of this formulation is its explicit representation of temporal change. Through the input, forget, output, and cell gates, the model can selectively retain information from the pre-event image while integrating new information from the post-event image, thereby learning a spatially distributed change signal. However, the receptive field remains local because all convolutions are 3×3, and no explicit attention mechanism is applied. As a result, large-scale spatial context is only weakly represented.
-**ConvLSTM architecture** 
-   ![ConvLSTM](https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/ConvLSTM.png)
-#### : ConvLSTM with Attention
-The ConvLSTM with attention model extended the previous architecture by inserting a Convolutional Block Attention Module (CBAM) between the convolutional refinement stage and the final pooling step. CBAM applies channel attention and spatial attention sequentially. Channel attention recalibrates feature responses across channels using global average- and max-pooled descriptors passed through a shared MLP. Spatial attention then highlights informative locations using channel-pooled statistics convolved with a 7×7 kernel.
-This addition is particularly relevant for field damage detection, where damage often occupies only a limited and spatially irregular portion of the field. By emphasizing anomalous regions and suppressing less informative background responses, the attention module improves the discriminative quality of the aggregated representation. Compared with the plain ConvLSTM, this model retains the same temporal modeling strategy but provides greater spatial selectivity at relatively low computational cost. Its limitation is that contextual reasoning remains restricted to the effective receptive field of the convolutional backbone and attention kernel.
-**ConvLSTM with Attention architecture** 
-   ![ConvLSTMAtt](https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/ConvLSTMAtt.png)
-#### : ConvMixer Transformer
-The ConvMixer Transformer model replaced recurrent processing with a patch-based convolutional token-mixing strategy. A 4×4 strided convolution first projected the ten-band input into a latent feature space with 128 channels. The resulting representation was then processed by eight ConvMixer blocks, each combining depthwise convolution for spatial mixing and pointwise 1×1 convolution for channel mixing, with residual connections between blocks.
-Compared with the previous models, ConvMixer offers a deeper and more structured separation between spatial and channel processing, which improves training stability and parameter efficiency. However, it does not explicitly model temporal change, as all ten bands are processed jointly in a single stream. Likewise, it does not include a dedicated spatial attention mechanism. Instead, the model relies on progressively enlarged receptive fields and masked global pooling to capture relevant damage patterns.
-**ConvMixer Tranformer architecture** 
-   ![ConvMixer](https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/ConvMixer.png)
-#### : Window Transformer 
-The Window Transformer introduced explicit self-attention-based contextual modeling through a shifted window attention mechanism (Swin) mechanism. The input image was first converted into patch tokens through a patch-embedding layer, after which the token sequence was processed by twelve Swin blocks. These blocks alternated between regular window partitioning and cyclically shifted windows, allowing information exchange across neighboring windows and progressively expanding the effective receptive field.
-This architecture is designed to capture longer-range spatial dependencies than convolutional models. Such context is useful when distinguishing local damage signatures from surrounding undamaged vegetation or other background patterns. Temporal information, however, remains implicit because the pre- and post-event bands are embedded jointly rather than processed as separate streams. Consequently, the model must learn change-sensitive patterns from the combined representation without an explicit temporal comparison mechanism.
-**ConvMixer Tranformer architecture** 
-   ![WindowTranformer](https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/WindowAtt.png)
-#### : Dual Swin Transformer
-The Dual Swin Transformer extended the Window Transformer by introducing explicit dual-stream processing of the pre-event and post-event images. The two five-band inputs were embedded separately using independent patch-embedding layers, producing reference (R) and damage (D) token representations. These representations were then fused through a four-way interaction that combined D, R, |D − R|, and D ⊙ R , followed by linear projection and GELU activation.
-This fusion strategy encoded temporal change in multiple complementary forms, including direct difference, absolute difference, and multiplicative interaction. The fused tokens were then processed by twelve Swin blocks with alternating shifted windows, enabling both explicit temporal comparison and long-range spatial reasoning. After the final normalization layer, masked global average pooling generated a fixed-length representation for classification.
-Among the evaluated models, this architecture provides the most complete integration of the explicit temporal modeling, adaptive spatial feature weighting through self-attention, and broad contextual reasoning across the field. Its main disadvantages are higher computational cost and the strict requirement for co-registered pre- and post-event images at inference time.
-**Dual Swin Transformer architecture** 
-   ![DualSwinTransformer](https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/DualSwinTransf.png)
+## Overview
 
+This project presents a deep learning workflow for **field-level damage detection** from paired Sentinel-2 images. The approach uses:
+
+- **10 m Sentinel-2 multispectral imagery**
+- **RGB, NIR, and SWIR bands**
+- **Cloud cover < 30%**
+- **Field boundaries delineated using the Delineate Anything model** (Lavreniuk et al., 2025)
+
+The training dataset was built from **8 manually annotated 10 × 10 km areas** in conflict-affected regions of Ukraine. A field polygon was labeled as **damaged** only when damage occurred **between the two image acquisition dates**.
+
+To reduce class imbalance and increase the diversity of damaged samples, each damage observation was paired with up to **five pre-damage images**.
+
+## Models Evaluated
+
+We evaluated **six deep learning architectures** for field-level damage detection:
+
+1. **CNN**
+2. **ConvLSTM**
+3. **ConvLSTM with Attention**
+4. **ConvMixer**
+5. **Window Transformer**
+6. **Dual Swin Transformer**
+
+---
+
+## Architectures
+
+### 1. CNN
+
+The CNN model serves as the simplest baseline. It treats the full ten-band input as a single multi-channel image and extracts spatial features through three successive convolutional blocks. Each block consists of:
+
+- 2D convolution  
+- batch normalization  
+- GELU activation  
+- max pooling  
+
+Pooling progressively reduces spatial resolution while increasing the receptive field. The final feature map is aggregated with adaptive average pooling and passed to an MLP classifier.
+
+This architecture does not explicitly model temporal structure or spatial attention. Instead, pre-event and post-event information are processed jointly, and the network must infer damage directly from the stacked spectral input. Its main advantage is computational simplicity and efficient inference, making it a useful baseline. Its main limitation is reduced sensitivity to subtle temporal changes.
+
+<p align="center">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/CNN.png" alt="CNN architecture" width="500">
+</p>
+
+---
+
+### 2. ConvLSTM
+
+To introduce explicit temporal modeling, the ConvLSTM architecture splits the ten-band input into two sequential five-band images representing the **pre-event** and **post-event** observations. These two timesteps are processed by a convolutional long short-term memory (ConvLSTM) cell, which maintains spatially distributed hidden and cell states throughout the sequence.
+
+The hidden state from the final timestep is further refined by a two-layer convolutional block before global pooling and classification.
+
+The main advantage of this model is its explicit representation of temporal change. Through its gating mechanism, the network can preserve information from the pre-event image while incorporating new information from the post-event image, allowing it to learn a spatially distributed change signal. However, because all convolutions are local and no explicit attention mechanism is applied, large-scale spatial context remains limited.
+
+<p align="center">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/ConvLSTM.png" alt="ConvLSTM architecture" width="500">
+</p>
+
+---
+
+### 3. ConvLSTM with Attention
+
+This model extends the ConvLSTM architecture by adding a **Convolutional Block Attention Module (CBAM)** between the convolutional refinement stage and the final pooling layer.
+
+CBAM applies:
+
+- **Channel attention**, which recalibrates responses across channels using pooled descriptors and a shared MLP
+- **Spatial attention**, which highlights informative regions using channel-pooled statistics and a convolutional layer
+
+This addition is especially useful for damage detection, where damage often affects only a limited and spatially irregular part of a field. By emphasizing anomalous regions and suppressing less informative background responses, the attention mechanism improves the discriminative quality of the learned representation.
+
+Compared with the plain ConvLSTM, this model preserves the same temporal modeling framework while improving spatial selectivity at relatively low computational cost. Its limitation is that contextual reasoning is still constrained by the effective receptive field of the convolutional backbone.
+
+<p align="center">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/ConvLSTMAtt.png" alt="ConvLSTM with Attention architecture" width="500">
+</p>
+
+---
+
+### 4. ConvMixer
+
+The ConvMixer model replaces recurrent processing with a patch-based convolutional token-mixing strategy. A **4 × 4 strided convolution** first projects the ten-band input into a latent feature space with 128 channels. This representation is then processed by **eight ConvMixer blocks**, each combining:
+
+- depthwise convolution for spatial mixing  
+- pointwise 1 × 1 convolution for channel mixing  
+- residual connections  
+
+Compared with the previous models, ConvMixer provides a deeper and more structured separation between spatial and channel processing, which can improve training stability and parameter efficiency. However, temporal change is not modeled explicitly, since all ten bands are processed jointly in a single stream. Likewise, the model does not include a dedicated attention mechanism, relying instead on progressively enlarged receptive fields and masked global pooling.
+
+<p align="center">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/ConvMixer.png" alt="ConvMixer architecture" width="500">
+</p>
+
+---
+
+### 5. Window Transformer
+
+The Window Transformer introduces explicit self-attention-based contextual modeling through a **shifted-window attention mechanism** inspired by Swin Transformers. The input image is first converted into patch tokens through a patch embedding layer, after which the token sequence is processed by **twelve Swin blocks**.
+
+These blocks alternate between:
+
+- regular window partitioning  
+- cyclically shifted windows  
+
+This design allows information exchange across neighboring windows and progressively expands the effective receptive field.
+
+The main strength of this architecture is its ability to capture longer-range spatial dependencies, which is useful when distinguishing local damage signatures from surrounding undamaged vegetation or background patterns. However, temporal information remains implicit because pre-event and post-event bands are embedded jointly rather than processed as separate streams.
+
+<p align="center">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/WindowAtt.png" alt="Window Transformer architecture" width="500">
+</p>
+
+---
+
+### 6. Dual Swin Transformer
+
+The Dual Swin Transformer extends the Window Transformer by introducing explicit **dual-stream processing** of pre-event and post-event imagery. The two five-band inputs are embedded separately using independent patch embedding layers, producing reference (**R**) and damage (**D**) token representations.
+
+These two streams are fused using a four-way interaction that combines:
+
+- **D**
+- **R**
+- **|D − R|**
+- **D ⊙ R**
+
+The fused features are then linearly projected and passed through a GELU activation before being processed by **twelve Swin blocks** with alternating shifted windows. After the final normalization layer, masked global average pooling produces a fixed-length representation for classification.
+
+Among the evaluated models, this architecture provides the most complete integration of:
+
+- explicit temporal modeling  
+- adaptive spatial weighting through self-attention  
+- broad contextual reasoning across the field  
+
+Its main disadvantages are higher computational cost and the requirement for accurately co-registered pre-event and post-event imagery.
+
+<p align="center">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/DualSwinTransf.png" alt="Dual Swin Transformer architecture" width="500">
+</p>
+
+---
+
+## Key Features
+
+- Field-level agricultural damage detection
+- Paired Sentinel-2 image analysis
+- Explicit comparison of convolutional, recurrent, and transformer-based models
+- Scalable approach using open-access satellite data
+- Application to conflict-related environmental monitoring in Ukraine
+
+## Study Area and Data
+
+- **Region:** Conflict-affected agricultural areas of Ukraine  
+- **Satellite data:** Sentinel-2  
+- **Spatial resolution:** 10 m  
+- **Bands used:** RGB, NIR, SWIR  
+- **Cloud cover threshold:** <30%  
+- **Labels:** Manually annotated field polygons from 8 sample areas  
+
+## Potential Applications
+
+- Post-conflict agricultural recovery
+- UXO and demining prioritization
+- Damage and loss assessment
+- Large-scale operational monitoring of war impacts on cropland
+
+## Reference
+
+If you use this repository or build upon this work, please cite the related study once the manuscript is published.
