@@ -20,7 +20,7 @@ The training dataset was built from **8 manually annotated 10 × 10 km areas** i
 To reduce class imbalance and increase the diversity of damaged samples, each damage observation was paired with up to **five pre-damage images**.
 
 <p align="center">
-  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/annotated_data.png" alt="Annotated Data Locations" width="500">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/annotated_data.png" alt="Annotated Data Locations" width="1000">
 </p>
 
 ## Models Evaluated
@@ -238,7 +238,7 @@ This folder contains Google Earth Engine (GEE) scripts used for satellite image 
 - **`downloader.js`** — GEE script for downloading satellite imagery.
 - **`Gee_anotation.js`** — GEE script for annotation of field polygons based on pairs of satellite images and generation of labeled polygons.
 <p align="center">
-  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/gee_labeling.png" alt="Annotation of Damge Data in Google Earth Engine" width="500">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/gee_labeling.png" alt="Annotation of Damge Data in Google Earth Engine" width="1000">
 </p>
 #### `Image_preparation.ipynb`
 Notebook for generating training and validation datasets from processed satellite images and annotated shapefiles, including sample augmentation.
@@ -254,7 +254,7 @@ This part of the repository contains notebooks for model training, evaluation, a
 - **`Area_Estimation_Validation.ipynb`** — Notebook for evaluating area estimation performance based on trained models. It also uses the validation data generator and model architectures from `Models_training.ipynb`.
 - **`Polygons_Classification.ipynb`** — Notebook for field polygon classification using trained models and the architectures defined in `Models_training.ipynb`.
 <p align="center">
-  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/models_training.png" alt="Models Training Report in Console" width="500">
+  <img src="https://github.com/LeonidShumilo/Sentinel2_Damage_Detection/blob/main/images/models_training.png" alt="Models Training Report in Console" width="1000">
 </p>
 ### Data Examples
 
