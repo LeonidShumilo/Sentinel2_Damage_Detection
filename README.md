@@ -186,45 +186,33 @@ Model performance was evaluated using standard classification metrics derived fr
 **User’s Accuracy (UA)**  
 User’s Accuracy corresponds to **precision**, that is, the proportion of fields predicted as damaged that are truly damaged:
 
-\[
-UA = \frac{TP}{TP + FP}
-\]
+`UA = TP / (TP + FP)`
 
 **Producer’s Accuracy (PA)**  
 Producer’s Accuracy corresponds to **recall**, that is, the proportion of truly damaged fields that were correctly detected:
 
-\[
-PA = \frac{TP}{TP + FN}
-\]
+`PA = TP / (TP + FN)`
 
 **Overall Accuracy (OA)**  
 Overall Accuracy is the proportion of all correctly classified fields:
 
-\[
-OA = \frac{TP + TN}{TP + TN + FP + FN}
-\]
+`OA = (TP + TN) / (TP + TN + FP + FN)`
 
 **Average Accuracy (AA)**  
-Average Accuracy is the mean of class-wise accuracies. For binary classification, it can be written as:
+Average Accuracy is the mean of class-wise accuracies. For binary classification:
 
-\[
-AA = \frac{1}{2}\left(\frac{TP}{TP + FN} + \frac{TN}{TN + FP}\right)
-\]
+`AA = 0.5 * (TP / (TP + FN) + TN / (TN + FP))`
 
 where the first term is the accuracy for the damaged class and the second term is the accuracy for the undamaged class.
 
 **F1 Score**  
 The F1 score is the harmonic mean of precision and recall:
 
-\[
-F1 = 2 \cdot \frac{UA \cdot PA}{UA + PA}
-\]
+`F1 = 2 * (UA * PA) / (UA + PA)`
 
-or equivalently,
+or equivalently:
 
-\[
-F1 = \frac{2TP}{2TP + FP + FN}
-\]
+`F1 = 2TP / (2TP + FP + FN)`
 
 ### Interpretation
 
