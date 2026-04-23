@@ -172,6 +172,64 @@ Its main disadvantages are higher computational cost and the requirement for acc
 - Damage and loss assessment
 - Large-scale operational monitoring of war impacts on cropland
 
+## Validation
+
+Model performance was evaluated using standard classification metrics derived from the confusion matrix at the **field level**. For binary classification, we define:
+
+- **TP** — damaged fields correctly classified as damaged  
+- **TN** — undamaged fields correctly classified as undamaged  
+- **FP** — undamaged fields incorrectly classified as damaged  
+- **FN** — damaged fields incorrectly classified as undamaged  
+
+### Metrics
+
+**User’s Accuracy (UA)**  
+User’s Accuracy corresponds to **precision**, that is, the proportion of fields predicted as damaged that are truly damaged:
+
+\[
+UA = \frac{TP}{TP + FP}
+\]
+
+**Producer’s Accuracy (PA)**  
+Producer’s Accuracy corresponds to **recall**, that is, the proportion of truly damaged fields that were correctly detected:
+
+\[
+PA = \frac{TP}{TP + FN}
+\]
+
+**Overall Accuracy (OA)**  
+Overall Accuracy is the proportion of all correctly classified fields:
+
+\[
+OA = \frac{TP + TN}{TP + TN + FP + FN}
+\]
+
+**Average Accuracy (AA)**  
+Average Accuracy is the mean of class-wise accuracies. For binary classification, it can be written as:
+
+\[
+AA = \frac{1}{2}\left(\frac{TP}{TP + FN} + \frac{TN}{TN + FP}\right)
+\]
+
+where the first term is the accuracy for the damaged class and the second term is the accuracy for the undamaged class.
+
+**F1 Score**  
+The F1 score is the harmonic mean of precision and recall:
+
+\[
+F1 = 2 \cdot \frac{UA \cdot PA}{UA + PA}
+\]
+
+or equivalently,
+
+\[
+F1 = \frac{2TP}{2TP + FP + FN}
+\]
+
+### Interpretation
+
+In the context of agricultural field damage detection, **UA** indicates how reliable predicted damaged fields are, while **PA** reflects how completely the model identifies truly damaged fields. **OA** provides an overall measure of correctness, **AA** balances performance across both classes, and **F1** summarizes the trade-off between precision and recall in a single metric.
+
 ## Reference
 
 If you use this repository or build upon this work, please cite the related study once the manuscript is published.
