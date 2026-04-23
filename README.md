@@ -218,6 +218,58 @@ or equivalently:
 
 In the context of agricultural field damage detection, **UA** indicates how reliable predicted damaged fields are, while **PA** reflects how completely the model identifies truly damaged fields. **OA** provides an overall measure of correctness, **AA** balances performance across both classes, and **F1** summarizes the trade-off between precision and recall in a single metric.
 
+---
+## Repository Overview
+
+This repository is organized into modules for data preprocessing, model development, validation, and application. It also includes example datasets to help users understand the input data structure and workflow.
+
+### Data Preprocessing
+
+This stage covers image filtering, downloading, annotation, and preparation of training and validation samples.
+
+#### `GEE_data_processing/`
+This folder contains Google Earth Engine (GEE) scripts used for satellite image selection, downloading, and annotation.
+
+- **`Images_filtering_csv_generation.js`** — GEE script for filtering images within the region of interest based on cloud cover and exporting a CSV file with information on image availability.
+- **`downloader.js`** — GEE script for downloading satellite imagery.
+- **`Gee_anotation.js`** — GEE script for annotation of field polygons based on pairs of satellite images and generation of labeled polygons.
+
+#### `Image_preparation.ipynb`
+Notebook for generating training and validation datasets from processed satellite images and annotated shapefiles, including sample augmentation.
+
+
+
+### Model Architectures, Training, Validation, and Application
+
+This part of the repository contains notebooks for model training, evaluation, area estimation, and inference on field polygons.
+
+- **`Models_training.ipynb`** — Main notebook containing data generators, deep learning model architectures, and training workflows.
+- **`Validation_Metrcis_report.ipynb`** — Notebook for generating validation reports for trained models. It uses the validation data generator and model architectures defined in `Models_training.ipynb`.
+- **`Area_Estimation_Validation.ipynb`** — Notebook for evaluating area estimation performance based on trained models. It also uses the validation data generator and model architectures from `Models_training.ipynb`.
+- **`Polygons_Classification.ipynb`** — Notebook for field polygon classification using trained models and the architectures defined in `Models_training.ipynb`.
+
+### Data Examples
+
+The `Data/` folder contains example inputs used in the workflow:
+
+- **`Satellite_images/`** — Example of two processed satellite images.
+- **`polygons/`** — Example of annotated field polygons.
+- **`tr_data_example/`** — Example of generated training data.
+
+
+
+### Workflow Summary
+
+The general workflow of the repository is as follows:
+
+1. Filter and download suitable satellite imagery in Google Earth Engine.
+2. Annotate agricultural field polygons using paired satellite images in GEE.
+3. Prepare training and validation datasets with augmentation.
+4. Train deep learning models for field-level damage detection.
+5. Evaluate model classification and area estimation performance.
+6. Apply trained models to classify new agricultural polygons.
+
+---
 ## Reference
 
 If you use this repository or build upon this work, please cite the related study once the manuscript is published.
